@@ -22,6 +22,20 @@ interface IVARtoken {
 
 }
 
+interface Ietf {
+    /// @dev getPrice() returns the price of an NFT from the FakeNFTMarketplace
+    /// @return Returns the price in Wei for an NFT
+    function deposit(address , uint256) external ;
+    function withdraw(address , uint256) external ; 
+    /// @dev available() returns whether or not the given _tokenId has already been purchased
+    /// @return Returns a boolean value - true if available, false if not
+    function totalSupply() external view returns (uint256);
+
+    function balanceOfVAR(address) external view returns (uint256);
+
+
+}
+
 /**
  * Minimal interface for CryptoDevsNFT containing only two functions
  * that we are interested in
@@ -55,6 +69,8 @@ contract swapstormDAO is Ownable {
         uint256 nayVotes;
         // executed - whether or not this proposal has been executed yet. Cannot be executed before the deadline has been exceeded.
         bool executed;
+
+        bool bs;
         // voters - a mapping of CryptoDevsNFT tokenIDs to booleans indicating whether that NFT has already been used to cast a vote or not
         mapping(uint256 => bool) voters;
     }
@@ -64,16 +80,22 @@ contract swapstormDAO is Ownable {
     // Number of proposals that have been created
     uint256 public numProposals;
 
+    mapping(address => uint256) public portfolioadd;
+
     IVARtoken VARtoken;
+    Ietf etf;
+
     // ICryptoDevsNFT cryptoDevsNFT;
 
     // Create a payable constructor which initializes the contract
     // instances for FakeNFTMarketplace and CryptoDevsNFT
     // The payable allows this constructor to accept an ETH deposit when it is being deployed
-    constructor(address _nftMarketplace, address _cryptoDevsNFT) payable {
+    constructor(address _nftMarketplace, address _etf) payable {
         VARtoken = IVARtoken(_nftMarketplace);
+        etf = Ietf(_etf);
         // cryptoDevsNFT = ICryptoDevsNFT(_cryptoDevsNFT);
     }
+
 
     // Create a modifier which only allows a function to be
     // called by someone who owns at least 1 CryptoDevsNFT
@@ -93,39 +115,45 @@ contract swapstormDAO is Ownable {
     // / @dev createProposal allows a CryptoDevsNFT holder to create a new proposal in the DAO
     // / @param _nftTokenId - the tokenID of the NFT to be purchased from FakeNFTMarketplace if this proposal passes
     // / @return Returns the proposal index for the newly created proposal
-    function createProposalToBuyExisingTokens(
-        uint256[] amt
+    function createProposalToBuyExisingToken(
+        address tokenAddress ,uint256 amnt    
     ) external ownerofVAROnly returns (uint256) {
         // require(nftMarketplace.available(_nftTokenId), "NFT_NOT_FOR_SALE");
         Proposal storage proposal = proposals[numProposals];
-        proposal.add_to_portfolio[/* hardcode addresses of tokens here */] = amt[0];
-        proposal.add_to_portfolio[/* hardcode addresses of tokens here */] = amt[1];
-        proposal.add_to_portfolio[/* hardcode addresses of tokens here */] = amt[2];
-        proposal.add_to_portfolio[/* hardcode addresses of tokens here */] = amt[3];
-        proposal.add_to_portfolio[/* hardcode addresses of tokens here */] = amt[4];
-        proposal.add_to_portfolio[/* hardcode addresses of tokens here */] = amt[5];
-        // Set the proposal's voting deadline to be (current time + 5 minutes)
+
+         proposal.add_to_portfolio[tokenAddress] = amnt;
+
         proposal.deadline = block.timestamp + 5 minutes;
+        proposal.bs = 1;
 
         numProposals++;
 
         return numProposals - 1;
     }
+    
+
   
-        function createProposalToBuyNewTokens(
-        address tokunAddress, uint256 amt1
+        function createProposalToSellTokuns(
+        address tokunAddress, uint256 sAmt
     ) external ownerofVAROnly returns (uint256) {
         // require(nftMarketplace.available(_nftTokenId), "NFT_NOT_FOR_SALE");
         Proposal storage proposal = proposals[numProposals];
-        proposal.add_to_portfolio[tokunAddress] = amt1;
+        proposal.add_to_portfolio[tokunAddress] = sAmt;
 
         // Set the proposal's voting deadline to be (current time + 5 minutes)
         proposal.deadline = block.timestamp + 5 minutes;
-
+        
+        proposal.bs = 0;
         numProposals++;
 
         return numProposals - 1;
     }
+
+    function request_req_price(uint40 proposalIndex) public view returns (address,uint256){
+        address a = proposals[proposalIndex].add_to_portfolio; 
+        uint256 amnt = proposals[proposalIndex].add_to_portfolio[a];
+    }
+    
 
 
     // Create a modifier which only allows a function to be
@@ -195,9 +223,17 @@ contract swapstormDAO is Ownable {
         // If the proposal has more YAY votes than NAY votes
         // purchase the NFT from the FakeNFTMarketplace
         if (proposal.yayVotes > proposal.nayVotes) {
-
-            require(address(this).balance >= nftPrice, "NOT_ENOUGH_FUNDS");//change variable name to something
+            if(proposal.bs = 1 ){
+            require(address(this).balance >= reqPrice, "NOT_ENOUGH_FUNDS");//change variable name to something
             ////add function to change ETF structure,parameters proposal.add_to_portfolio
+            address a = proposals[proposalIndex].add_to_portfolio;  
+            Ietf.deposit(proposals[proposalIndex].add_to_portfolio,proposals[proposalIndex].add_to_portfolio[a]);
+            }
+            else {
+            address a = proposals[proposalIndex].add_to_portfolio;  
+            Ietf.withdraw(proposals[proposalIndex].add_to_portfolio,proposals[proposalIndex].add_to_portfolio[a]);
+            }
+
         }
         proposal.executed = true;
     }
